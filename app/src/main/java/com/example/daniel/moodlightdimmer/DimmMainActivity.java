@@ -1,9 +1,6 @@
 package com.example.daniel.moodlightdimmer;
 
 
-import android.content.Context;
-import android.net.wifi.WifiInfo;
-import android.net.wifi.WifiManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -37,11 +34,12 @@ public class DimmMainActivity extends AppCompatActivity {
     private Button buttonSet, buttonReconnect;
     private Integer color;
     private MqttAndroidClient client;
-    private String device = "sender";
+    private String device = "receiver";
     private String publisher_topic;
     private String broker = "tcp://raspi2:1883";
     private Spinner spinnerlights;
     private CheckBox checkBoxInstantSet;
+    private String[] adapter;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -55,12 +53,12 @@ public class DimmMainActivity extends AppCompatActivity {
         checkBoxInstantSet = (CheckBox) findViewById(R.id.checkBoxInstantSet);
 
         color = 0xFF000000;
+
+        adapter = new String[] {"All", "Kitchen", "Automat", "South East","South West","North East","North West"};
         spinnerlights = (Spinner) findViewById(R.id.spinnerLights);
-        spinnerlights.setAdapter(new ArrayAdapter<String>(this, R.layout.support_simple_spinner_dropdown_item, new String[] {"All", "Kitchen", "Automat", "South East","South West","North East","North West"} ));
+        spinnerlights.setAdapter(new ArrayAdapter<String>(this, R.layout.support_simple_spinner_dropdown_item, adapter));
 
-        String macaddress = getWifiMacAddress();
-
-        publisher_topic = "kitchen/switch/android/" + macaddress;
+        publisher_topic = "kitchen/switch/android/" + device == "sender"?getWifiMacAddress():"#";
 
         red.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -148,7 +146,7 @@ public class DimmMainActivity extends AppCompatActivity {
             //String topic = publisher_topic;sf
             //String payload = Integer.toHexString(color);
 
-            if(sendCommand) SendCommand(spinnerlights.getSelectedItem().toString() + ";                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 " +Integer.toHexString(color).substring(2), publisher_topic);
+            if(sendCommand) SendCommand(spinnerlights.getSelectedItem().toString() + ";                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 " + Integer.toHexString(color).substring(2), publisher_topic);
         }
         else if(!client.isConnected() && device == "sender")
         {
@@ -220,13 +218,7 @@ public class DimmMainActivity extends AppCompatActivity {
             public void messageArrived(String topic, MqttMessage message) throws Exception {
                 try {
                     if(device == "receiver") {
-                        String msg = new String(message.getPayload());
-                        msg = msg.substring(2);
-                        color = 0xFF000000 | Integer.parseInt(msg, 16);
-                        red.setProgress(((color & 0xFF0000) >> 16) * 100 / 255);
-                        green.setProgress(((color & 0xFF00) >> 8) * 100 / 255);
-                        blue.setProgress(((color & 0xFF)) * 100 / 255);
-                        SetButtonColor(false);
+                        EvaluatePayload(new String(message.getPayload()));
                     }
                 }
                 catch (Exception e)
@@ -246,7 +238,6 @@ public class DimmMainActivity extends AppCompatActivity {
 
     private void SendCommand(String payload, String topic)
     {
-        //TODO Send which lights should be set
         try {
             byte[] encodedPayload = payload.getBytes();
             MqttMessage msg = new MqttMessage(encodedPayload);
@@ -258,7 +249,7 @@ public class DimmMainActivity extends AppCompatActivity {
         }
     }
 
-    public static String getWifiMacAddress() {
+    private String getWifiMacAddress() {
         try {
             String interfaceName = "wlan0";
             List<NetworkInterface> interfaces = Collections.list(NetworkInterface.getNetworkInterfaces());
@@ -283,6 +274,23 @@ public class DimmMainActivity extends AppCompatActivity {
             }
         } catch (Exception ex) { } // for now eat exceptions
         return "";
+    }
+
+    private void EvaluatePayload(String msg)
+    {
+        String temp[] = msg.split(";");
+        color = 0xFF000000 | Integer.parseInt(temp[1], 16);
+        red.setProgress(((color & 0xFF0000) >> 16) * 100 / 255);
+        green.setProgress(((color & 0xFF00) >> 8) * 100 / 255);
+        blue.setProgress(((color & 0xFF)) * 100 / 255);
+
+        for(int i=0; i<adapter.length; i++) {
+            if(adapter[i].equals(temp[0])) {
+                spinnerlights.setSelection(i);
+            }
+
+        }
+        SetButtonColor(false);
     }
 
 }
