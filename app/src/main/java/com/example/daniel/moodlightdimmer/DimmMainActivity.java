@@ -34,9 +34,9 @@ public class DimmMainActivity extends AppCompatActivity {
     private Button buttonSet, buttonReconnect;
     private Integer color;
     private MqttAndroidClient client;
-    private String device = "receiver";
+    private String device = "sender";
     private String publisher_topic;
-    private String broker = "tcp://raspi2:1883";
+    private String broker = "tcp://172.23.4.17:1883";
     private Spinner spinnerlights;
     private CheckBox checkBoxInstantSet;
     private String[] adapter;
@@ -58,7 +58,7 @@ public class DimmMainActivity extends AppCompatActivity {
         spinnerlights = (Spinner) findViewById(R.id.spinnerLights);
         spinnerlights.setAdapter(new ArrayAdapter<String>(this, R.layout.support_simple_spinner_dropdown_item, adapter));
 
-        publisher_topic = "kitchen/switch/android/" + device == "sender"?getWifiMacAddress():"#";
+        publisher_topic = "kitchen/switch/android/" + getWifiMacAddress();
 
         red.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -146,7 +146,7 @@ public class DimmMainActivity extends AppCompatActivity {
             //String topic = publisher_topic;sf
             //String payload = Integer.toHexString(color);
 
-            if(sendCommand) SendCommand(spinnerlights.getSelectedItem().toString() + ";                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 " + Integer.toHexString(color).substring(2), publisher_topic);
+            if(sendCommand) SendCommand(spinnerlights.getSelectedItem().toString() + ";" +Integer.toHexString(color).substring(2), publisher_topic);
         }
         else if(!client.isConnected() && device == "sender")
         {
