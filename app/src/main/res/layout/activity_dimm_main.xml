@@ -64,6 +64,14 @@
         <Button
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:text="Random"
+            android:id="@+id/buttonRandom"
+            android:layout_gravity="center_horizontal"
+            android:singleLine="true" />
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:text="Reconnect"
             android:id="@+id/buttonReconnect"
             android:layout_gravity="center_horizontal" />

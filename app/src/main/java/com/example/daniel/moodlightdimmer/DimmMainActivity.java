@@ -31,15 +31,16 @@ import java.util.List;
 public class DimmMainActivity extends AppCompatActivity {
 
     private SeekBar red, green, blue;
-    private Button buttonSet, buttonReconnect;
+    private Button buttonSet, buttonReconnect, buttonRandom;
     private Integer color;
     private MqttAndroidClient client;
     private String device = "sender";
     private String publisher_topic;
-    private String broker = "tcp://172.23.4.17:1883";
+    private String broker = "tcp://homer:1883";
     private Spinner spinnerlights;
     private CheckBox checkBoxInstantSet;
     private String[] adapter;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -50,15 +51,17 @@ public class DimmMainActivity extends AppCompatActivity {
         blue = (SeekBar) findViewById(R.id.seekBarBlue);
         buttonSet = (Button) findViewById(R.id.buttonSet);
         buttonReconnect = (Button) findViewById(R.id.buttonReconnect);
+        buttonRandom = (Button) findViewById(R.id.buttonRandom);
         checkBoxInstantSet = (CheckBox) findViewById(R.id.checkBoxInstantSet);
+
 
         color = 0xFF000000;
 
-        adapter = new String[] {"All", "Kitchen", "Automat", "South East","South West","North East","North West"};
+        adapter = new String[] {"1", "2", "3", "4","5","6","7", "8", "9", "10", "all"};
         spinnerlights = (Spinner) findViewById(R.id.spinnerLights);
         spinnerlights.setAdapter(new ArrayAdapter<String>(this, R.layout.support_simple_spinner_dropdown_item, adapter));
 
-        publisher_topic = "kitchen/switch/android/" + getWifiMacAddress();
+        publisher_topic = "kitchen/switches/android/" + getWifiMacAddress();
 
         red.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -125,6 +128,13 @@ public class DimmMainActivity extends AppCompatActivity {
             }
         });
 
+        buttonRandom.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                SetButtonColor(true, true);
+            }
+        });
+
         buttonReconnect.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -136,19 +146,26 @@ public class DimmMainActivity extends AppCompatActivity {
 
 
     }
-
     private void SetButtonColor(Boolean sendCommand)
+    {
+        SetButtonColor(sendCommand, false);
+    }
+
+    private void SetButtonColor(Boolean sendCommand, Boolean rand)
     {
         color = (0xFF<<24) | ((int)(red.getProgress()*2.55)<<16) | ((int)(green.getProgress()*2.55)<<8) | ((int)(blue.getProgress()*2.55));
         buttonSet.setBackgroundColor(color);
-        if(client.isConnected() && device == "sender")
+        if(client.isConnected() && !rand)
         {
             //String topic = publisher_topic;sf
-            //String payload = Integer.toHexString(color);
-
-            if(sendCommand) SendCommand(spinnerlights.getSelectedItem().toString() + ";" +Integer.toHexString(color).substring(2), publisher_topic);
+            //String payload = Integer.toHexString(color)
+            if(sendCommand) SendCommand(spinnerlights.getSelectedItem().toString() + "#" + Integer.toHexString(color).substring(2), publisher_topic);
         }
-        else if(!client.isConnected() && device == "sender")
+        else if(client.isConnected())
+        {
+            if(sendCommand) SendCommand(spinnerlights.getSelectedItem().toString() + "#rand", publisher_topic);
+        }
+        else
         {
             Toast.makeText(this.getApplicationContext(), "Not Connected", Toast.LENGTH_SHORT);
         }
@@ -211,7 +228,7 @@ public class DimmMainActivity extends AppCompatActivity {
         this.client.setCallback(new MqttCallback() {
             @Override
             public void connectionLost(Throwable cause) {
-                Log.d("Connection", "Lost");
+                Log.d("Connection", "Lost Cause: " + cause.toString());
             }
 
             @Override
@@ -257,7 +274,6 @@ public class DimmMainActivity extends AppCompatActivity {
                 if (!intf.getName().equalsIgnoreCase(interfaceName)){
                     continue;
                 }
-
                 byte[] mac = intf.getHardwareAddress();
                 if (mac==null){
                     return "";
@@ -283,12 +299,10 @@ public class DimmMainActivity extends AppCompatActivity {
         red.setProgress(((color & 0xFF0000) >> 16) * 100 / 255);
         green.setProgress(((color & 0xFF00) >> 8) * 100 / 255);
         blue.setProgress(((color & 0xFF)) * 100 / 255);
-
         for(int i=0; i<adapter.length; i++) {
             if(adapter[i].equals(temp[0])) {
                 spinnerlights.setSelection(i);
             }
-
         }
         SetButtonColor(false);
     }
