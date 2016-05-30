@@ -34,7 +34,6 @@ public class DimmMainActivity extends AppCompatActivity {
     private Button buttonSet, buttonReconnect, buttonRandom;
     private Integer color;
     private MqttAndroidClient client;
-    private String device = "sender";
     private String publisher_topic;
     private String broker = "tcp://homer:1883";
     private Spinner spinnerlights;
@@ -53,7 +52,6 @@ public class DimmMainActivity extends AppCompatActivity {
         buttonReconnect = (Button) findViewById(R.id.buttonReconnect);
         buttonRandom = (Button) findViewById(R.id.buttonRandom);
         checkBoxInstantSet = (CheckBox) findViewById(R.id.checkBoxInstantSet);
-
 
         color = 0xFF000000;
 
@@ -157,13 +155,11 @@ public class DimmMainActivity extends AppCompatActivity {
         buttonSet.setBackgroundColor(color);
         if(client.isConnected() && !rand)
         {
-            //String topic = publisher_topic;sf
-            //String payload = Integer.toHexString(color)
-            if(sendCommand) SendCommand(spinnerlights.getSelectedItem().toString() + "#" + Integer.toHexString(color).substring(2), publisher_topic);
+            if(sendCommand) SendCommand("colorchange:Lamp" + spinnerlights.getSelectedItem().toString() + "#" + Integer.toHexString(color).substring(2), publisher_topic);
         }
         else if(client.isConnected())
         {
-            if(sendCommand) SendCommand(spinnerlights.getSelectedItem().toString() + "#rand", publisher_topic);
+            if(sendCommand) SendCommand("colorchange:Lamp" + spinnerlights.getSelectedItem().toString() + "#rand", publisher_topic);
         }
         else
         {
@@ -184,38 +180,12 @@ public class DimmMainActivity extends AppCompatActivity {
                 @Override
                 public void onSuccess(IMqttToken asyncActionToken) {
                     // We are connected
-                    // if connection was succesful, subscripe to topic if app is a receiver
-                    Log.d("MQTT Connection", "onSuccess");
-                    if (device == "receiver") {
-                        String topic = publisher_topic;
-
-                        int qos = 1;
-                        try {
-                            IMqttToken subToken = client.subscribe(topic, qos);
-                            subToken.setActionCallback(new IMqttActionListener() {
-                                @Override
-                                public void onSuccess(IMqttToken asyncActionToken) {
-                                    Log.d("MQTT Subscription", "Successful");
-                                }
-
-                                @Override
-                                public void onFailure(IMqttToken asyncActionToken, Throwable exception) {
-
-                                }
-                            });
-
-                        } catch (MqttSecurityException e) {
-                            e.printStackTrace();
-                        } catch (MqttException e) {
-                            e.printStackTrace();
-
-                        }
-                    }
+                    Log.d("MQTT Connection", "Sucessfully Connected");
                 }
                 @Override
                 public void onFailure(IMqttToken asyncActionToken, Throwable exception) {
                     // Something went wrong e.g. connection timeout or firewall problems
-                    Log.d("FragmentActivity", "onFailure");
+                    Log.d("MQTT Connection", "Exeption: " + exception.getMessage());
                 }
             });
         } catch (MqttException e) {
@@ -233,15 +203,6 @@ public class DimmMainActivity extends AppCompatActivity {
 
             @Override
             public void messageArrived(String topic, MqttMessage message) throws Exception {
-                try {
-                    if(device == "receiver") {
-                        EvaluatePayload(new String(message.getPayload()));
-                    }
-                }
-                catch (Exception e)
-                {
-                    Log.d("MesageArrived", "Exeption");
-                }
             }
 
             @Override
@@ -292,19 +253,5 @@ public class DimmMainActivity extends AppCompatActivity {
         return "";
     }
 
-    private void EvaluatePayload(String msg)
-    {
-        String temp[] = msg.split(";");
-        color = 0xFF000000 | Integer.parseInt(temp[1], 16);
-        red.setProgress(((color & 0xFF0000) >> 16) * 100 / 255);
-        green.setProgress(((color & 0xFF00) >> 8) * 100 / 255);
-        blue.setProgress(((color & 0xFF)) * 100 / 255);
-        for(int i=0; i<adapter.length; i++) {
-            if(adapter[i].equals(temp[0])) {
-                spinnerlights.setSelection(i);
-            }
-        }
-        SetButtonColor(false);
-    }
 
 }
