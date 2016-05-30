@@ -35,7 +35,7 @@ public class DimmMainActivity extends AppCompatActivity {
     private Integer color;
     private MqttAndroidClient client;
     private String publisher_topic;
-    private String broker = "tcp://homer:1883";
+    private String broker = "tcp://sushi.binary.kitchen:1883";
     private Spinner spinnerlights;
     private CheckBox checkBoxInstantSet;
     private String[] adapter;
